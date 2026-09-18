@@ -1,37 +1,62 @@
-import { mockIssues } from '../data/mockIssues'
+const API_BASE_URL = 'http://localhost:5000/api/issues'
 
-const STORAGE_KEY = 'mini-issue-tracker-issues'
+const handleResponse = async (response) => {
+  const data = await response.json().catch(() => null)
 
-const readIssues = () => {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  return stored ? JSON.parse(stored) : mockIssues
+  if (!response.ok) {
+    throw new Error(
+      data?.message || `Request failed with status ${response.status}`
+    )
+  }
+
+  return data
 }
 
-const writeIssues = (issues) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(issues))
-  return issues
+export const getIssues = async () => {
+  const response = await fetch(API_BASE_URL)
+  return handleResponse(response)
 }
 
-export const getIssues = async () => readIssues()
-
-export const getIssue = async (id) => readIssues().find((issue) => issue.id === Number(id))
+export const getIssue = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/${id}`)
+  return handleResponse(response)
+}
 
 export const createIssue = async (data) => {
-  const issues = readIssues()
-  const issue = { ...data, id: Date.now(), status: data.status || 'Open' }
-  writeIssues([issue, ...issues])
-  return issue
+  const response = await fetch(API_BASE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      title: data.title,
+      description: data.description,
+    }),
+  })
+
+  return handleResponse(response)
 }
 
 export const updateIssue = async (id, data) => {
-  const issues = readIssues()
-  const updatedIssue = { ...data, id: Number(id) }
-  writeIssues(issues.map((issue) => (issue.id === Number(id) ? updatedIssue : issue)))
-  return updatedIssue
+  const response = await fetch(`${API_BASE_URL}/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      title: data.title,
+      description: data.description,
+      status: data.status,
+    }),
+  })
+
+  return handleResponse(response)
 }
 
 export const deleteIssue = async (id) => {
-  const issues = readIssues().filter((issue) => issue.id !== Number(id))
-  writeIssues(issues)
-  return true
+  const response = await fetch(`${API_BASE_URL}/${id}`, {
+    method: 'DELETE',
+  })
+
+  return handleResponse(response)
 }
